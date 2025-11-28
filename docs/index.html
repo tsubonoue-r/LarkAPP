@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LarkApp Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+        }
+        .summary {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+        .summary h2 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-card h3 {
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+            opacity: 0.9;
+        }
+        .stat-card p {
+            font-size: 2rem;
+            font-weight: bold;
+        }
+        .state-breakdown {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .state-breakdown h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+        .state-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            margin-bottom: 5px;
+            background: white;
+            border-radius: 4px;
+        }
+        .issues {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+        .issues h2 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .issue-item {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        .issue-item:last-child {
+            border-bottom: none;
+        }
+        .issue-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        .issue-meta {
+            font-size: 0.9rem;
+            color: #666;
+        }
+        .label {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            margin-right: 5px;
+            margin-bottom: 5px;
+            background: #667eea;
+            color: white;
+        }
+        .timestamp {
+            color: #999;
+            font-size: 0.8rem;
+            text-align: center;
+            margin-top: 20px;
+        }
+        .loading {
+            text-align: center;
+            color: white;
+            font-size: 1.5rem;
+            padding: 50px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌸 LarkApp Dashboard</h1>
+
+        <div id="loading" class="loading">Loading dashboard data...</div>
+        <div id="content" style="display: none;">
+            <div class="summary">
+                <h2>📊 Summary</h2>
+                <div class="stats">
+                    <div class="stat-card">
+                        <h3>Total Issues</h3>
+                        <p id="total-issues">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Open Issues</h3>
+                        <p id="open-issues">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Closed Issues</h3>
+                        <p id="closed-issues">0</p>
+                    </div>
+                </div>
+                <div class="state-breakdown">
+                    <h3>State Breakdown</h3>
+                    <div id="state-breakdown"></div>
+                </div>
+            </div>
+
+            <div class="issues">
+                <h2>📝 Recent Issues</h2>
+                <div id="issues-list"></div>
+            </div>
+
+            <div class="timestamp" id="timestamp"></div>
+        </div>
+    </div>
+
+    <script>
+        async function loadDashboard() {
+            try {
+                const response = await fetch('dashboard-data.json');
+                const data = await response.json();
+
+                // Update summary stats
+                document.getElementById('total-issues').textContent = data.summary.totalIssues;
+                document.getElementById('open-issues').textContent = data.summary.openIssues;
+                document.getElementById('closed-issues').textContent = data.summary.closedIssues;
+
+                // Update state breakdown
+                const stateBreakdown = document.getElementById('state-breakdown');
+                if (Object.keys(data.summary.stateBreakdown).length > 0) {
+                    stateBreakdown.innerHTML = Object.entries(data.summary.stateBreakdown)
+                        .map(([state, count]) => `
+                            <div class="state-item">
+                                <span>${state}</span>
+                                <strong>${count}</strong>
+                            </div>
+                        `).join('');
+                } else {
+                    stateBreakdown.innerHTML = '<p style="color: #999;">No state labels found</p>';
+                }
+
+                // Update issues list
+                const issuesList = document.getElementById('issues-list');
+                if (data.issues.length > 0) {
+                    issuesList.innerHTML = data.issues.slice(0, 20).map(issue => `
+                        <div class="issue-item">
+                            <div class="issue-title">#${issue.number} - ${issue.title}</div>
+                            <div class="issue-meta">
+                                ${issue.labels.map(label => `<span class="label">${label}</span>`).join('')}
+                                <div style="margin-top: 8px;">
+                                    <span style="background: ${issue.state === 'open' ? '#28a745' : '#6c757d'}; color: white; padding: 2px 8px; border-radius: 3px; font-size: 0.75rem;">
+                                        ${issue.state.toUpperCase()}
+                                    </span>
+                                    <span style="margin-left: 10px; color: #999;">
+                                        Updated: ${new Date(issue.updated_at).toLocaleDateString()}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    issuesList.innerHTML = '<p style="color: #999; text-align: center;">No issues found</p>';
+                }
+
+                // Update timestamp
+                document.getElementById('timestamp').textContent =
+                    `Last updated: ${new Date(data.generatedAt).toLocaleString()}`;
+
+                // Show content and hide loading
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('content').style.display = 'block';
+            } catch (error) {
+                console.error('Failed to load dashboard data:', error);
+                document.getElementById('loading').textContent =
+                    '❌ Failed to load dashboard data. Please try again later.';
+            }
+        }
+
+        loadDashboard();
+    </script>
+</body>
+</html>
